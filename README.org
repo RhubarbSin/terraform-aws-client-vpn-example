@@ -1,3 +1,4 @@
+#+title: terraform-aws-client-vpn-example
 * Overview
   This Terraform configuration provides an example of how the AWS Client VPN service can be configured. It creates a Client VPN, an EC2 instance running Amazon Linux 2023 (named "Client VPN") that is reachable via that Client VPN, and another EC2 instance running Ubuntu (named "VPN Client") that is connected to the Client VPN with OpenVPN software. It also allows downloading the Client VPN configuration file for use with the AWS Client VPN for Desktop software.
 * Prerequisites
