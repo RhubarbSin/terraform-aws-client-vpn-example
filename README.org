@@ -7,8 +7,10 @@
   - =jq= for external data sources
   - AWS CLI version 2 for generating S3 presigned URLs
 * Suggested Method of Deployment and Usage
-  If an environment providing the prerequisites is not readily available, AWS CloudShell can be used for deployment. Instructions for installing and using Terraform with CloudShell can be found here: https://github.com/RhubarbSin/terraform-aws-vpc-ec2-amazon-linux-2023-example
-
+  If an environment providing the prerequisites is not readily available, AWS CloudShell can be used for deployment. Terraform can be installed on Amazon Linux 2023 in CloudShell with the following command:
+  #+begin_src shell
+  curl https://gist.githubusercontent.com/RhubarbSin/d3db401da906015ff2a88cca1a42b027/raw/ddf6ecbadbbf7304a97d7b5657216af99c8bff49/install-terraform-amazon-linux-2023.sh | bash
+  #+end_src
   After deployment, there are various ways to use the provisioned resources and to demonstrate the functioning of the Client VPN:
   - Use SSH to connect to the public IP address of the Ubuntu instance (the /vpn_client_instance_public_ip/ output) and ping the private IP address of the AL2023 instance (the /client_vpn_instance_private_ip/ output) over the VPN tunnel (acting as "User" in the diagram):
     #+begin_src shell
