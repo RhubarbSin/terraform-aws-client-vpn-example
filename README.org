@@ -1,6 +1,6 @@
 #+title: terraform-aws-client-vpn-example
 * Overview
-  This Terraform configuration provides an example of how the AWS Client VPN service can be configured. It creates a Client VPN, an EC2 instance running Amazon Linux 2023 (named "Client VPN") that is reachable via that Client VPN, and another EC2 instance running Ubuntu (named "VPN Client") that is connected to the Client VPN with OpenVPN software. It also allows downloading the Client VPN configuration file for use with the AWS Client VPN for Desktop software.
+  This Terraform configuration provides an example of how the AWS Client VPN service can be configured. It creates a Client VPN, an EC2 instance running Amazon Linux 2023 (named "Client VPN") that is reachable via that Client VPN, and another EC2 instance running Amazon Linux 2023 (named "VPN Client") that is connected to the Client VPN with OpenVPN software. It also allows downloading the Client VPN configuration file for use with the AWS Client VPN for Desktop software.
 * Prerequisites
   - Git
   - Terraform
@@ -12,23 +12,23 @@
   curl https://gist.githubusercontent.com/RhubarbSin/d3db401da906015ff2a88cca1a42b027/raw/ddf6ecbadbbf7304a97d7b5657216af99c8bff49/install-terraform-amazon-linux-2023.sh | bash
   #+end_src
   After deployment, there are various ways to use the provisioned resources and to demonstrate the functioning of the Client VPN:
-  - Use SSH to connect to the public IP address of the Ubuntu instance (the /vpn_client_instance_public_ip/ output) and ping the private IP address of the AL2023 instance (the /client_vpn_instance_private_ip/ output) over the VPN tunnel (acting as "User" in the diagram):
+  - Use SSH to connect to the public IP address of the VPN Client instance (the /vpn_client_instance_public_ip/ output) and ping the private IP address of the Client VPN instance (the /client_vpn_instance_private_ip/ output) over the VPN tunnel (acting as "User" in the diagram):
     #+begin_src shell
     ssh -o StrictHostKeyChecking=no \
         -i $(terraform output -raw ssh_private_key_file_name) \
-        ubuntu@$(terraform output -raw vpn_client_instance_public_ip) \
+        ec2-user@$(terraform output -raw vpn_client_instance_public_ip) \
         ping -c 3 $(terraform output -raw client_vpn_instance_private_ip)
     #+end_src
-  - Use the Ubuntu instance as a jump proxy to connect to the AL2023 instance over the VPN tunnel (acting as "User" in the diagram):
+  - Use the VPN Client instance as a jump proxy to connect to the Client VPN instance over the VPN tunnel (acting as "User" in the diagram):
     #+begin_src shell
-    ssh -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i $(terraform output -raw ssh_private_key_file_name) -l ubuntu -W %h:%p $(terraform output -raw vpn_client_instance_public_ip)" \
+    ssh -o ProxyCommand="ssh -o StrictHostKeyChecking=no -i $(terraform output -raw ssh_private_key_file_name) -l ec2-user -W %h:%p $(terraform output -raw vpn_client_instance_public_ip)" \
         -o StrictHostKeyChecking=no \
         -i $(terraform output -raw ssh_private_key_file_name) \
         ec2-user@$(terraform output -raw client_vpn_instance_private_ip)
     #+end_src
     Unfortunately the =ProxyJump= configuration directive cannot be used here because the =-i= option on the command line does not get used for the connection to the jump host, so =ProxyCommand= is used instead.
-  - The /ssh_private_key_file_url/ output can be used to download the private key to another system and log into /ubuntu/ account on the Ubuntu instance via SSH (acting as "User" in the diagram). The /ubuntu/ account's SSH client configuration on that instance allows easy SSH login to the AL2023 instance by private IP address without specifying the private key or remote user name.
-  - Download the AWS Client VPN for Desktop software, use the /client_vpn_configuration_file_url/ output to download the Client VPN configuration file, and use the file to add a profile for connecting to the Client VPN for access (e.g. ICMP, SSH) to the private IP address of the AL2023 instance (acting as "Authenticated User" in the diagram).
+  - The /ssh_private_key_file_url/ output can be used to download the private key to another system and log into /ec2-user/ account on the VPN Client instance via SSH (acting as "User" in the diagram). The /ec2-user/ account's SSH client configuration on that instance allows easy SSH login to the Client VPN instance by private IP address without specifying the private key or remote user name.
+  - Download the AWS Client VPN for Desktop software, use the /client_vpn_configuration_file_url/ output to download the Client VPN configuration file, and use the file to add a profile for connecting to the Client VPN for access (e.g. ICMP, SSH) to the private IP address of the Client VPN instance (acting as "Authenticated User" in the diagram).
 * Configuration
 ** Region
    By default, resources are provisioned in the us-east-2 region. The region used is specified by the value of the /region/ input variable.
@@ -41,10 +41,10 @@
     + *AWS Certificate Manager* (ACM) for holding the certificate specified as the server certificate and client certificate for the Client VPN endpoint
     + *AWS Identity and Access Management* (IAM) for the policy, role, and instance profile for the EC2 instances
     + *VPC Endpoints* to enable access to S3 for operating system updates as well as use of AWS Systems Manager Session Manager
-  - The EC2 instance running Ubuntu ("VPN Client EC2 Instance" in the diagram) exists only for demonstration and testing. Of course the AWS Client VPN service is intended for secure access to AWS resources from origins /outside/ AWS.
+  - The VPN Client EC2 instance exists only for demonstration and testing. Of course the AWS Client VPN service is intended for secure access to AWS resources from origins /outside/ AWS.
 * Implementation Details
-  - The /VPN Client EC2/ security group associated with network interface of the Ubuntu instance ("VPN Client EC2 Instance" in the diagram) allows TCP traffic to port 22 from 0.0.0.0/0.
-  - The /Client VPN EC2/ security group associated with the network interface of the AL2023 instance ("Client VPN EC2 Instance" in the diagram) allows all traffic from the /Client VPN CVPN/ security group that is associated with the Client VPN endpoint.
+  - The /VPN Client EC2/ security group associated with network interface of the VPN Client instance ("VPN Client EC2 Instance" in the diagram) allows TCP traffic to port 22 from 0.0.0.0/0.
+  - The /Client VPN EC2/ security group associated with the network interface of the Client VPN instance ("Client VPN EC2 Instance" in the diagram) allows all traffic from the /Client VPN CVPN/ security group that is associated with the Client VPN endpoint.
   - The CIDR blocks used by the VPCs and the Client VPN endpoint are taken from a random selection within the 20-bit block specified in RFC 1918, avoiding the 172.17.0.0/16 and 172.31.0.0/16 ranges as advised by AWS documentation. For the sake of convenience, the 172.16.0.0/16 range is also avoided.
 * Diagram
   [[./terraform-aws-client-vpn-example.png]]

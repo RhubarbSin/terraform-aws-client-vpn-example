@@ -19,11 +19,8 @@ variable "vpn_certificate_domain_name" {
 }
 
 variable "ssm_parameter_name" {
-  type = map(string)
-  default = {
-    client_vpn : "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
-    vpn_client : "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
-  }
+  type    = string
+  default = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
 }
 
 variable "split_tunnel_mode" {

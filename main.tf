@@ -568,25 +568,19 @@ resource "aws_key_pair" "this" {
 }
 
 data "aws_ssm_parameter" "this" {
-  for_each = var.ssm_parameter_name
-
-  name = each.value
+  name = var.ssm_parameter_name
 
   with_decryption = false
 }
 
 data "aws_ami" "this" {
-  for_each = data.aws_ssm_parameter.this
-
   filter {
     name   = "image-id"
-    values = [each.value.value]
+    values = [data.aws_ssm_parameter.this.value]
   }
 }
 
 data "aws_ec2_instance_types" "this" {
-  for_each = data.aws_ami.this
-
   filter {
     name   = "burstable-performance-supported"
     values = ["true"]
@@ -604,14 +598,8 @@ data "aws_ec2_instance_types" "this" {
 
   filter {
     name   = "processor-info.supported-architecture"
-    values = [each.value.architecture]
+    values = [data.aws_ami.this.architecture]
   }
-}
-
-data "aws_ec2_instance_type" "this" {
-  for_each = data.aws_ec2_instance_types.this
-
-  instance_type = each.value.instance_types.0
 }
 
 locals {
@@ -626,23 +614,21 @@ locals {
       repo_upgrade : "all",
     },
     vpn_client : {
-      packages : [
-        {
-          apt : ["openvpn"],
-        },
-      ],
+      repo_update : true,
+      repo_upgrade : "all",
+      packages : "openvpn",
       write_files : [
         {
-          path : "/home/ubuntu/.ssh/${random_pet.this.id}",
+          path : "/home/ec2-user/.ssh/${random_pet.this.id}",
           permissions : "0600",
-          owner : "ubuntu:ubuntu",
+          owner : "ec2-user:ec2-user",
           content : tls_private_key.ssh.private_key_openssh,
           defer : true,
         },
         {
-          path : "/home/ubuntu/.ssh/config",
+          path : "/home/ec2-user/.ssh/config",
           permissions : "0600",
-          owner : "ubuntu:ubuntu",
+          owner : "ec2-user:ec2-user",
           content : local.ssh_config,
           defer : true,
         },
@@ -672,14 +658,14 @@ data "cloudinit_config" "this" {
 }
 
 resource "aws_instance" "this" {
-  for_each = data.aws_ec2_instance_type.this
+  for_each = data.cloudinit_config.this
 
-  ami                  = data.aws_ssm_parameter.this[each.key].value
+  ami                  = data.aws_ssm_parameter.this.value
   iam_instance_profile = aws_iam_role.this.name
-  instance_type        = each.value.id
+  instance_type        = data.aws_ec2_instance_types.this.instance_types.0
   key_name             = aws_key_pair.this.key_name
   subnet_id            = aws_subnet.this[each.key].id
-  user_data            = data.cloudinit_config.this[each.key].rendered
+  user_data            = each.value.rendered
   volume_tags          = { Name : aws_vpc.this[each.key].tags.Name }
   vpc_security_group_ids = [
     aws_security_group.ec2[each.key].id,
